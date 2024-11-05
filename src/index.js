@@ -125,7 +125,15 @@ async function expenseToTransaction(expense) {
 
   let group = null;
   if(expense.group_id !== null) {
-    group = await splitwiseService.fetchGroup(expense.group_id);
+    groups = await splitwiseService.fetchGroups();
+
+    for (grp of groups) {
+      if (grp.id === expense.group_id) {
+        group = grp;
+        break;
+      }
+    }
+
   }
 
   let payee_str = "";

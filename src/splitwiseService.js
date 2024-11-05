@@ -33,6 +33,16 @@ const splitwiseService = {
     }
   },
 
+  async fetchGroups() {
+    try {
+      const groups = await splitwise.getGroups();
+      return groups;
+    } catch (error) {
+      console.error('Error fetching groups from Splitwise:', error);
+      return [];
+    }
+  },
+
   async fetchExpensesBetweenDatesHelper(startDate, endDate, offset) {
     try {
       const expenses = await splitwise.getExpenses({

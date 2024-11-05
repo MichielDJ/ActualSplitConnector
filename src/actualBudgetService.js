@@ -15,6 +15,16 @@ const actualBudgetService = {
     await actualApi.downloadBudget(config.actualBudgetSyncId);
   },
 
+  async commit()  {
+    try {
+      await actualApi.commit();
+      return true;
+    } catch (error) {
+      console.error('Error committing ActualBudget:', error);
+      return false;
+    }
+  },
+
   async shutdown() {
     try {
       await actualApi.shutdown();
@@ -34,7 +44,6 @@ const actualBudgetService = {
       return false;
     }
   },
-
 
 async updateTransactions(transactionIds, transactions) {
   for (let i = 0; i < transactionIds.length; i++) {

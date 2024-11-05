@@ -2,9 +2,18 @@
 const splitwiseService = require('./splitwiseService');
 const actualBudgetService = require('./actualBudgetService');
 const config = require('./config');
+const fs = require('fs');
+const path = require('path');
 
 async function syncExpenses() {
   await actualBudgetService.initialize();
+
+  // load start date from 'last_sync.json' file into environment variable
+  const lastSyncPath = path.join(__dirname, 'last_sync.json');
+  if (fs.existsSync(lastSyncPath)) {
+    const lastSync = JSON.parse(fs.readFileSync(lastSyncPath));
+    process.env.START_DATE = lastSync.startDate;
+  }
 
   // get start date from environment variable
   const startDate = Date.parse(process.env.START_DATE);
@@ -85,7 +94,8 @@ async function syncExpenses() {
   // update transactions in ActualBudget
   console.log(`Found ${updatedTransactions.length} updated expenses. Syncing with ActualBudget...`);
   if (updatedTransactions.length > 0) {
-    await actualBudgetService.updateTransactions(updatedTransactionIds, updatedTransactions);
+    await actualBudgetService.deleteTransactions(updatedTransactionIds);
+    await actualBudgetService.importTransactions(updatedTransactions);
   }
   // delete transactions in ActualBudget
   console.log(`Found ${deletedTransactionIds.length} deleted expenses. Syncing with ActualBudget...`);
@@ -93,8 +103,13 @@ async function syncExpenses() {
     await actualBudgetService.deleteTransactions(deletedTransactionIds);
   }
   
-  // change environment variable to current date
-  process.env.START_DATE = endDateString;
+  // save end date to 'last_sync.json' file
+  const lastSync = { startDate: endDateString };
+  fs.writeFileSync(lastSyncPath, JSON.stringify(lastSync));
+
+
+  // wait for ActualBudget to finish processing
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   // shutdown ActualBudget
   await actualBudgetService.shutdown();
@@ -126,8 +141,15 @@ function expenseAndUserToTransaction(expense, user) {
     name_str = user.first_name;
   }
 
+  // extract net balance for user
+  for (exp_user of expense.users) {
+    if (exp_user.user_id === user.id) {
+      amount = -actualBudgetService.integerToAmount(exp_user.net_balance);
+      break;
+    }
+  }
+
   let category = null;
-  let amount = actualBudgetService.integerToAmount(expense.cost);
   if (expense.description == 'Payment') {
     category = config.actualBudgetToBeBudgettedCategoryId;
     amount = -amount;

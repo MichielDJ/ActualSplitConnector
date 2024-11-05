@@ -1,11 +1,15 @@
-###################################################
-# This Dockerfile is used by the docker-compose.yml
-# file to build the development container.
-# Do not make any changes here unless you know what
-# you are doing.
-###################################################
+# Dockerfile
+FROM node:18
 
-FROM node:18-bullseye as dev
-RUN apt-get update -y && apt-get upgrade -y && apt-get install -y openssl
+# Set the working directory
 WORKDIR /app
-CMD ["sh", "./bin/docker-start"]
+
+# Copy package.json and install dependencies
+COPY package.json package-lock.json ./
+RUN npm install
+
+# Copy the application code
+COPY . .
+
+# Start the application
+CMD ["node", "src/index.js"]

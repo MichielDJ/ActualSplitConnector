@@ -23,6 +23,16 @@ const splitwiseService = {
     return expenses;
   },
 
+  async fetchGroup(groupId) {
+    try {
+      const group = await splitwise.getGroup(groupId);
+      return group;
+    } catch (error) {
+      console.error('Error fetching group from Splitwise:', error);
+      return null;
+    }
+  },
+
   async fetchExpensesBetweenDatesHelper(startDate, endDate, offset) {
     try {
       const expenses = await splitwise.getExpenses({

@@ -4,13 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="da605510-cc44-44a5-aaa2-c51d61497aec" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/My-Finances-d9b28e2/cache.sqlite" beforeDir="false" afterPath="$PROJECT_DIR$/My-Finances-d9b28e2/cache.sqlite" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/My-Finances-d9b28e2/db.sqlite" beforeDir="false" afterPath="$PROJECT_DIR$/My-Finances-d9b28e2/db.sqlite" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/My-Finances-d9b28e2/metadata.json" beforeDir="false" afterPath="$PROJECT_DIR$/My-Finances-d9b28e2/metadata.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/actualBudgetService.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/actualBudgetService.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/index.js" afterDir="false" />
-    </list>
+    <list default="true" id="da605510-cc44-44a5-aaa2-c51d61497aec" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -59,7 +53,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1730747044409</updated>
-      <workItem from="1730747045477" duration="2451000" />
+      <workItem from="1730747045477" duration="3148000" />
     </task>
     <servers />
   </component>

@@ -4,6 +4,7 @@ const actualBudgetService = require('./actualBudgetService');
 const config = require('./config');
 const fs = require('fs');
 const path = require('path');
+const { group } = require('console');
 
 async function syncExpenses() {
   await actualBudgetService.initialize();
@@ -49,38 +50,40 @@ async function syncExpenses() {
   const deletedTransactionIds = [];
 
   for (const expense of expenses) {
-    for (const user of expense.users) {
-      if (user.user_id === parseInt(config.splitWiseUserId)) {
-        continue;
-      }
 
-      // key to find transactions in ActualBudget corresponding to Splitwise expense
-      const key = expense.id + '_' + user.user_id;
+    // key to identify expense
+    const key = expense.id;
 
-      // expense was deleted on splitwise
-      if (expense.deleted_at !== null) {
-        for (const transaction of transactions) {
-          if (transaction.imported_id === key) {
-            deletedTransactionIds.push(transaction.id);
-          }
+    // expense was deleted on splitwise
+    if (expense.deleted_at !== null) {
+      for (const transaction of transactions) {
+        if (transaction.imported_id === key) {
+          deletedTransactionIds.push(transaction.id);
         }
-        continue;
       }
-
-      // expense, user combination is not new
+    } else {
+      // expense is not new
       found = false;
       for (const transaction of transactions) {
         if (transaction.imported_id === key) {
-          updatedTransactionIds.push(transaction.id);
-          updatedTransactions.push(expenseAndUserToTransaction(expense, user.user));
+          let updatedTransaction = await expenseToTransaction(expense);
+
+          if (updatedTranscation !== null) {
+            updatedTransactions.push(updatedTransaction);
+            updatedTransactionIds.push(transaction.id);
+          }
           found = true;
           break;
         }
       }
 
-      // expense, user combination is new
+      // expense is new
       if (!found) {
-        newTransactions.push(expenseAndUserToTransaction(expense, user.user));
+        let newTransaction = await expenseToTransaction(expense);
+
+        if (newTransaction !== null) {
+          newTransactions.push(newTransaction);
+        }
       }
     }
   }
@@ -118,54 +121,91 @@ async function syncExpenses() {
   console.log('Sync complete');
 }
 
+async function expenseToTransaction(expense) {
 
-async function expenseToTransactions(expense) {
-  transactions = []
-  for (const user of expense.users) {
-    if (user.user_id === int(config.splitWiseUserId)) {
-      continue;
-    }
-
-    const transaction = await expenseAndUserToTransaction(expense, user.user);
-    transactions.push(transaction);
+  let group = null;
+  if(expense.group_id !== null) {
+    group = await splitwiseService.fetchGroup(expense.group_id);
   }
 
-  return transactions;
-}
-
-function expenseAndUserToTransaction(expense, user) {
-  let name_str = '';
-  if(user.last_name != null){
-    name_str = user.first_name + ' ' + user.last_name;
-  } else {
-    name_str = user.first_name;
-  }
-
-  // extract net balance for user
+  let payee_str = "";
+  let amount = 0;
+  // extract net balance for user and set 
   for (exp_user of expense.users) {
-    if (exp_user.user_id === user.id) {
-      amount = -actualBudgetService.integerToAmount(exp_user.net_balance);
+    if (exp_user.user_id === parseInt(config.splitWiseUserId)) {
+      amount = actualBudgetService.integerToAmount(exp_user.net_balance);
+    }
+  }
+
+  if (amount === 0) {
+    return null;
+  }
+
+  for (exp_user of expense.users) {
+    if (exp_user.user_id !== parseInt(config.splitWiseUserId)) {
+
+      if (amount < 0 && exp_user.net_balance > 0) {
+
+        if(exp_user.user.last_name !== null && expense.users.length < 3) {
+          payee_str += exp_user.user.first_name + " " + exp_user.user.last_name + ", ";
+        } else {
+          payee_str += exp_user.user.first_name + ", ";
+        }
+        
+      } else if (amount > 0 && exp_user.net_balance < 0) {
+        
+        if(exp_user.user.last_name !== null && expense.users.length < 3) {
+          payee_str += exp_user.user.first_name + " " + exp_user.user.last_name + ", ";
+        } else {
+          payee_str += exp_user.user.first_name + ", ";
+        }
+      }
+    }
+  }
+
+  // remove trailing comma and space
+  payee_str = payee_str.slice(0, -2);
+
+  // get payees
+  payees = await actualBudgetService.fetchPayees();
+
+  // check if payee exists in ActualBudget
+  let payee_id = null;
+  for (payee of payees) {
+    if (payee.name === payee_str) {
+      payee_id = payee.id;
       break;
     }
   }
 
+  // create payee if it does not exist
+  if (payee_id === null) {
+    payee_id = await actualBudgetService.createPayee({ name: payee_str });
+  }
+
   let category = null;
   if (expense.description == 'Payment') {
+
     category = config.actualBudgetToBeBudgettedCategoryId;
-    amount = -amount;
+  }
+
+  if (group !== null && group.name !== "Non-group expenses") {
+    notes_str = group.name + ": " + expense.description + " (" + expense.id + ")";
+  } else {
+    notes_str = expense.description + " (" + expense.id + ")";
   }
 
   return {
     account: 'Splitwise',
     date: new Date(expense.date),
     amount: amount,
-    payee: name_str,
-    payee_name: name_str,
-    imported_payee: name_str,
+    payee: payee_id,
+    payee_name: payee_id,
+    imported_payee: payee_id,
     category: category,
-    imported_id: expense.id + '_' + user.id,
+    imported_id: expense.id,
     cleared: true,
-    notes: expense.description,
+    notes: notes_str,
   };
 }
 

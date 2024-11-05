@@ -88,6 +88,26 @@ async fetchTransactionsBetweenDates(startDate, endDate) {
   }
 },
 
+async fetchPayees() {
+  try {
+    const payees = await actualApi.getPayees();
+    return payees;
+  } catch (error) {
+    console.error('Error fetching payees from ActualBudget:', error);
+    return [];
+  }
+},
+
+async createPayee(payee) {
+  try {
+    id = await actualApi.createPayee(payee);
+    return id;
+  } catch (error) {
+    console.error('Error creating payee in ActualBudget:', error);
+    return null;
+  }
+},
+
 async fetchAccounts() {
   try {
     const accounts = await actualApi.getAccounts();

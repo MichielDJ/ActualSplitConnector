@@ -52,7 +52,7 @@ async function syncExpenses() {
   for (const expense of expenses) {
 
     // key to identify expense
-    const key = expense.id;
+    const key = expense.id.toString();
 
     // expense was deleted on splitwise
     if (expense.deleted_at !== null) {
@@ -68,7 +68,7 @@ async function syncExpenses() {
         if (transaction.imported_id === key) {
           let updatedTransaction = await expenseToTransaction(expense);
 
-          if (updatedTranscation !== null) {
+          if (updatedTransaction !== null) {
             updatedTransactions.push(updatedTransaction);
             updatedTransactionIds.push(transaction.id);
           }
@@ -83,6 +83,8 @@ async function syncExpenses() {
 
         if (newTransaction !== null) {
           newTransactions.push(newTransaction);
+        } else {
+          //console.log(`Skipping expense with description ${expense.description} and date ${expense.date} as it does not involve user with id ${config.splitWiseUserId}`);
         }
       }
     }
@@ -105,6 +107,9 @@ async function syncExpenses() {
   if (deletedTransactionIds.length > 0) {
     await actualBudgetService.deleteTransactions(deletedTransactionIds);
   }
+
+  // log the number of expenses the user is not involved in
+  console.log(`Found ${expenses.length -deletedTransactionIds.length - newTransactions.length - updatedTransactions.length} expenses that do not involve user with id ${config.splitWiseUserId}`);
   
   // save end date to 'last_sync.json' file
   const lastSync = { startDate: endDateString };
@@ -212,7 +217,7 @@ async function expenseToTransaction(expense) {
     payee_name: payee_id,
     imported_payee: payee_id,
     category: category,
-    imported_id: expense.id,
+    imported_id: expense.id.toString(),
     cleared: true,
     notes: notes_str,
   };

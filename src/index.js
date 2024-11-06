@@ -149,30 +149,31 @@ async function expenseToTransaction(expense) {
     return null;
   }
 
+  // get all users with net balance opposite to user
+  let relevant_users = [];
   for (exp_user of expense.users) {
-    if (exp_user.user_id !== parseInt(config.splitWiseUserId)) {
+    if (exp_user.user_id === parseInt(config.splitWiseUserId)) {
+      continue;
+    }
 
-      if (amount < 0 && exp_user.net_balance > 0) {
-
-        if(exp_user.user.last_name !== null && expense.users.length < 3) {
-          payee_str += exp_user.user.first_name + " " + exp_user.user.last_name + ", ";
-        } else {
-          payee_str += exp_user.user.first_name + ", ";
-        }
-        
-      } else if (amount > 0 && exp_user.net_balance < 0) {
-        
-        if(exp_user.user.last_name !== null && expense.users.length < 3) {
-          payee_str += exp_user.user.first_name + " " + exp_user.user.last_name + ", ";
-        } else {
-          payee_str += exp_user.user.first_name + ", ";
-        }
-      }
+    if (amount > 0 && exp_user.net_balance < 0) {
+      relevant_users.push(exp_user.user);
+    } else if (amount < 0 && exp_user.net_balance > 0) {
+      relevant_users.push(exp_user.user);
     }
   }
 
-  // remove trailing comma and space
-  payee_str = payee_str.slice(0, -2);
+  // for each relevant user, add to payee string
+  if (relevant_users.length === 1 && relevant_users[0].last_name !== null) {
+    payee_str = relevant_users[0].first_name + ' ' + relevant_users[0].last_name;
+  } else if (relevant_users.length === 1) {
+    payee_str = relevant_users[0].first_name;
+  } else {
+    for (user of relevant_users) {
+      payee_str += user.first_name + ", ";
+    }
+    payee_str = payee_str.slice(0, -2);
+  }
 
   // get payees
   payees = await actualBudgetService.fetchPayees();
@@ -198,9 +199,9 @@ async function expenseToTransaction(expense) {
   }
 
   if (group !== null && group.name !== "Non-group expenses") {
-    notes_str = group.name + ": " + expense.description + " (" + expense.id + ")";
+    notes_str = group.name + ": " + expense.description;
   } else {
-    notes_str = expense.description + " (" + expense.id + ")";
+    notes_str = expense.description;
   }
 
   return {

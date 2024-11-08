@@ -113,7 +113,7 @@ async function syncExpenses() {
   
   // save end date to 'last_sync.json' file
   const lastSync = { startDate: endDateString };
-  fs.writeFileSync(lastSyncPath, JSON.stringify(lastSync));
+  //fs.writeFileSync(lastSyncPath, JSON.stringify(lastSync));
 
 
   // wait for ActualBudget to finish processing
@@ -143,10 +143,12 @@ async function expenseToTransaction(expense) {
 
   let payee_str = "";
   let amount = 0;
+  let main_user = null;
   // extract net balance for user and set 
   for (exp_user of expense.users) {
     if (exp_user.user_id === parseInt(config.splitWiseUserId)) {
       amount = actualBudgetService.integerToAmount(exp_user.net_balance);
+      main_user = exp_user.user;
     }
   }
 
@@ -209,18 +211,96 @@ async function expenseToTransaction(expense) {
     notes_str = expense.description;
   }
 
-  return {
-    account: 'Splitwise',
-    date: new Date(expense.date),
-    amount: amount,
-    payee: payee_id,
-    payee_name: payee_id,
-    imported_payee: payee_id,
-    category: category,
-    imported_id: expense.id.toString(),
-    cleared: true,
-    notes: notes_str,
-  };
+  let subtransactions = [];
+
+  if(group !== null && group.name === "Billbuddy") {
+
+    // parse splitwise comments and look for "Totals for user"
+    comments = await splitwiseService.fetchComments(expense);
+    for (comment of comments) {
+      if (comment.content.includes("Totals for Michiel")) {
+        // parse comment and extract category
+        let lines = comment.content.split('\n');
+        recording = false;
+        for (line of lines) {
+          if (line.includes("Totals for " + main_user.first_name)) {
+            recording = true;
+          } else if (recording) {
+            if (line.includes("Total")) {
+              recording = false;
+            } else {
+              let parts = line.split(': ');
+              let cat = parts[0];
+              let part_amount = parseFloat(parts[1]);
+              if (part_amount > 0) {
+                let categ = await billBuddyToActualBudgetCategories(cat);
+
+                if (cat == "discount") {
+                  part_amount = actualBudgetService.integerToAmount(part_amount);
+                } else {
+                  part_amount = -actualBudgetService.integerToAmount(part_amount);
+                }
+
+                subtransactions.push({
+                  amount: part_amount,
+                  category: categ,
+                });
+              }  
+            }
+          }
+        }
+      }
+    }
+
+  } 
+
+  if (subtransactions.length > 0) {
+    return {
+      account: 'Splitwise',
+      date: new Date(expense.date),
+      amount: amount,
+      payee: payee_id,
+      payee_name: payee_id,
+      imported_payee: payee_id,
+      category: category,
+      imported_id: expense.id.toString(),
+      cleared: true,
+      notes: notes_str,
+      subtransactions: subtransactions,
+    };
+  } else {
+    return {
+      account: 'Splitwise',
+      date: new Date(expense.date),
+      amount: amount,
+      payee: payee_id,
+      payee_name: payee_id,
+      imported_payee: payee_id,
+      category: category,
+      imported_id: expense.id.toString(),
+      cleared: true,
+      notes: notes_str,
+    };
+  }
+
+
+
+}
+
+async function billBuddyToActualBudgetCategories(cat) {
+  // first retrieve categories from ActualBudget
+  cats = await actualBudgetService.fetchCategories();
+
+  // check if lowercase category exists in lowercase ActualBudget categories
+  for (category of cats) {
+    if (category.name.toLowerCase() === cat.toLowerCase()) {
+      return category.id;
+    } else if (category.name.toLowerCase() === "general" && cat.toLowerCase() === "product") {
+      return category.id;
+    }
+  }
+
+  return null;
 }
 
 syncExpenses()

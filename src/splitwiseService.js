@@ -23,6 +23,18 @@ const splitwiseService = {
     return expenses;
   },
 
+  async fetchComments(expense) {
+    // replace key id with expense_id
+    expense.expense_id = expense.id;
+    try {
+      const comments = await splitwise.getComments(expense);
+      return comments;
+    } catch (error) {
+      console.error('Error fetching comments from Splitwise:', error);
+      return [];
+    }
+  },
+
   async fetchGroup(groupId) {
     try {
       const group = await splitwise.getGroup(groupId);

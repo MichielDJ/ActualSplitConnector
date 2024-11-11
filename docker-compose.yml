@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  sync-expenses:
+    build: .
+    container_name: sync-expenses-splitwise-actualbudget
+    volumes:
+      - ./data:/usr/src/app/data  # Mount the local data directory to the container's data folder
+      - ./logs:/usr/src/app  # Mount the logs directory to persist cron log
+    restart: unless-stopped

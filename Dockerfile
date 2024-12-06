@@ -1,5 +1,5 @@
 # Use an official Node.js image as the base image
-FROM node:20
+FROM node:18
 
 # Set the working directory
 WORKDIR /usr/src/app
@@ -36,3 +36,4 @@ CMD ["cron", "-f"]
 # docker compose down
 # docker compose build --no-cache
 # docker compose up
+# npm rebuild better-sqlite3

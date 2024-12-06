@@ -5,6 +5,7 @@ const config = require('./config');
 const fs = require('fs');
 const path = require('path');
 const { group } = require('console');
+const exp = require('constants');
 
 async function syncExpenses() {
   await actualBudgetService.initialize();
@@ -213,7 +214,7 @@ async function expenseToTransaction(expense) {
 
   let subtransactions = [];
 
-  if(group !== null && group.name === "Billbuddy") {
+  if(group !== null && group.name === "Billbuddy" && amount < 0) {
 
     // parse splitwise comments and look for "Totals for user"
     comments = await splitwiseService.fetchComments(expense);
@@ -252,7 +253,23 @@ async function expenseToTransaction(expense) {
       }
     }
 
-  } 
+  } else if(group !== null && group.name === "Billbuddy") {
+    // divide on the different expenseusers
+    for (exp_user of expense.users) {
+      if (exp_user.user_id === parseInt(config.splitWiseUserId)) {
+        continue;
+      }
+
+      let part_amount = actualBudgetService.integerToAmount(exp_user.net_balance);
+
+      subtransactions.push({
+        amount: part_amount * -1,
+        category: null,
+        notes: exp_user.user.first_name,
+      });
+    }
+  
+  }
 
   if (subtransactions.length > 0) {
     return {

@@ -15,7 +15,7 @@ COPY . .
 RUN apt-get update && apt-get install -y cron
 
 # Add the cron job to run the script at the specified interval
-RUN echo "0 * * * * node /usr/src/app/src/index.js >> /usr/src/app/cron.log 2>&1" > /etc/cron.d/sync-expenses-cron
+RUN echo "0 * * * * /usr/local/bin/node /usr/src/app/src/index.js >> /usr/src/app/cron.log 2>&1" > /etc/cron.d/sync-expenses-cron
 
 # Give the cron job the right permissions
 RUN chmod 0644 /etc/cron.d/sync-expenses-cron

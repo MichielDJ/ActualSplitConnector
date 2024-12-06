@@ -35,5 +35,5 @@ CMD ["cron", "-f"]
 
 # docker compose down
 # docker compose build --no-cache
-# docker compose up
+# docker compose up -d
 # npm rebuild better-sqlite3

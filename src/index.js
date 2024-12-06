@@ -113,7 +113,7 @@ async function syncExpenses() {
   
   // save end date to 'last_sync.json' file
   const lastSync = { startDate: endDateString };
-  //fs.writeFileSync(lastSyncPath, JSON.stringify(lastSync));
+  fs.writeFileSync(lastSyncPath, JSON.stringify(lastSync));
 
 
   // wait for ActualBudget to finish processing

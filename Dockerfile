@@ -1,5 +1,5 @@
 # Use an official Node.js image as the base image
-FROM node:16
+FROM node:20
 
 # Set the working directory
 WORKDIR /usr/src/app
@@ -31,3 +31,8 @@ RUN mkdir -p /usr/src/app/data
 
 # Command to start cron in the background and keep the container running
 CMD ["cron", "-f"]
+
+
+# docker compose down
+# docker compose build --no-cache
+# docker compose up
